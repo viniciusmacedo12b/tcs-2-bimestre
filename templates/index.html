@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reconhecedor de Dígitos por IA</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background-color: #f0f0f0;
+            margin: 0;
+            flex-direction: column;
+        }
+        .container {
+            background-color: #ffffff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            width: 350px; /* Largura fixa para o container */
+        }
+        input[type="file"] {
+            margin-bottom: 20px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            width: calc(100% - 22px); /* Ajuste para padding/border */
+            box-sizing: border-box; /* Inclui padding e borda na largura */
+        }
+        button {
+            padding: 15px 30px;
+            font-size: 1.2em;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            width: 100%; /* Botão ocupa toda a largura */
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        #loading {
+            margin-top: 20px;
+            font-size: 1.1em;
+            color: #555;
+            display: none; /* Escondido por padrão */
+        }
+        #fileWarning {
+            color: red;
+            margin-top: 10px;
+            font-size: 0.9em;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Reconhecedor de Dígitos com IA</h1>
+        <p>Selecione uma imagem (PNG, JPG, JPEG, GIF) para análise:</p>
+        <input type="file" id="imageUpload" name="image" accept="image/png, image/jpeg, image/jpg, image/gif">
+        <div id="fileWarning">Por favor, selecione um arquivo de imagem.</div>
+        <button id="predictButton">Analisar Imagem</button>
+        <div id="loading">Analisando... Por favor, aguarde.</div>
+    </div>
+
+    <script>
+        document.getElementById('predictButton').addEventListener('click', async () => {
+            const button = document.getElementById('predictButton');
+            const loadingDiv = document.getElementById('loading');
+            const fileInput = document.getElementById('imageUpload');
+            const fileWarning = document.getElementById('fileWarning');
+
+            // Verifica se um arquivo foi selecionado
+            if (fileInput.files.length === 0) {
+                fileWarning.style.display = 'block'; // Mostra o aviso
+                return; // Impede a continuação se nenhum arquivo for selecionado
+            } else {
+                fileWarning.style.display = 'none'; // Esconde o aviso se um arquivo for selecionado
+            }
+
+            button.disabled = true; // Desabilita o botão
+            loadingDiv.style.display = 'block'; // Mostra a mensagem de carregamento
+
+            const formData = new FormData();
+            formData.append('image', fileInput.files[0]); // Adiciona o arquivo ao FormData
+
+            try {
+                // Envia a requisição POST com o FormData (contém o arquivo)
+                const response = await fetch('/predict', {
+                    method: 'POST',
+                    body: formData // Não precisa de 'Content-Type' aqui, o fetch o define automaticamente para FormData
+                });
+
+                const data = await response.json(); // Recebe a resposta JSON do servidor
+
+                if (data.success) {
+                    alert(`Previsão da IA: ${data.prediction}`);
+                } else {
+                    alert(`Erro na predição: ${data.message}`);
+                }
+            } catch (error) {
+                console.error('Erro ao conectar ao servidor:', error);
+                alert('Ocorreu um erro ao tentar se comunicar com o servidor. Verifique se o servidor está rodando.');
+            } finally {
+                button.disabled = false; // Habilita o botão novamente
+                loadingDiv.style.display = 'none'; // Esconde a mensagem de carregamento
+          
+            }
+        });
+    </script>
+</body>
+</html>
