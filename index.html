@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reconhecedor de Dígitos por IA</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background-color: #f0f0f0;
+            margin: 0;
+            flex-direction: column;
+        }
+        .container {
+            background-color: #ffffff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            width: 350px;
+        }
+        input[type="file"] {
+            margin-bottom: 20px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            width: calc(100% - 22px);
+            box-sizing: border-box;
+        }
+        button {
+            padding: 15px 30px;
+            font-size: 1.2em;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5pped;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            width: 100%;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        #loading {
+            margin-top: 20px;
+            font-size: 1.1em;
+            color: #555;
+            display: none;
+        }
+        #fileWarning {
+            color: red;
+            margin-top: 10px;
+            font-size: 0.9em;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Reconhecedor de Dígitos com IA</h1>
+        <p>Selecione uma imagem (PNG, JPG, JPEG, GIF) para análise:</p>
+        <input type="file" id="imageUpload" name="image" accept="image/png, image/jpeg, image/jpg, image/gif">
+        <div id="fileWarning">Por favor, selecione um arquivo de imagem.</div>
+        <button id="predictButton">Analisar Imagem</button>
+        <div id="loading">Analisando... Por favor, aguarde.</div>
+    </div>
+
+    <script>
+        document.getElementById('predictButton').addEventListener('click', async () => {
+            const button = document.getElementById('predictButton');
+            const loadingDiv = document.getElementById('loading');
+            const fileInput = document.getElementById('imageUpload');
+            const fileWarning = document.getElementById('fileWarning');
+
+            if (fileInput.files.length === 0) {
+                fileWarning.style.display = 'block';
+                return;
+            } else {
+                fileWarning.style.display = 'none';
+            }
+
+            button.disabled = true;
+            loadingDiv.style.display = 'block';
+
+            const formData = new FormData();
+            formData.append('image', fileInput.files[0]);
+
+            try {
+                // MUITO IMPORTANTE: Mudar a URL da API para /api/predict
+                const response = await fetch('/api/predict', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    alert(`Previsão da IA: ${data.prediction}`);
+                } else {
+                    alert(`Erro na predição: ${data.message}`);
+                }
+            } catch (error) {
+                console.error('Erro ao conectar ao servidor:', error);
+                alert('Ocorreu um erro ao tentar se comunicar com o servidor. Verifique se o servidor está rodando ou se a URL da API está correta.');
+            } finally {
+                button.disabled = false;
+                loadingDiv.style.display = 'none';
+                fileInput.value = '';
+            }
+        });
+    </script>
+</body>
+</html>
