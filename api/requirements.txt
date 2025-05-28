@@ -1,7 +1,7 @@
 Flask
 numpy
-tflite-runtime # Tente isso primeiro se tiver sucesso no deploy
-#tensorflow # Se tflite-runtime falhar no deploy
+#tflite-runtime # Tente isso primeiro se tiver sucesso no deploy
+tensorflow # Se tflite-runtime falhar no deploy
 werkzeug
 Pillow
 scipy # ADICIONADO!
