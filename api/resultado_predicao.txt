@@ -1,1 +1,1 @@
-Nï¿½mero Previsto: 512
+IMAGEM: 'meus_digitos.png' -> Número Previsto: 512
