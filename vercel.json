@@ -18,5 +18,10 @@
       "src": "/(.*)",
       "dest": "/index.html"
     }
-  ]
+  ],
+  "build": {
+    "env": {
+      "PIP_PYTHON_VERSION": "3.9" 
+    }
+  }
 }
