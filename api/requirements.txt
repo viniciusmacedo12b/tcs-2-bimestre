@@ -5,3 +5,4 @@ tflite-runtime # <<<< Use este agora!
 werkzeug
 Pillow
 scipy
+gunicorn  # <--- ADICIONE ESTE!
