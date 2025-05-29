@@ -1,6 +1,7 @@
 Flask
 numpy
-tensorflow # <<<< USE TENSORFLOW AQUI!
+# Remova: tensorflow
+tflite-runtime # <<<< Use este agora!
 werkzeug
 Pillow
 scipy
