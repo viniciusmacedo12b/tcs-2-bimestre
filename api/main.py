@@ -27,7 +27,7 @@ def carregar_modelo_tflite():
 # --- Função Auxiliar para Salvar Resultados (mesmo código anterior) ---
 def salvar_resultado(texto):
     result_filepath = os.path.join(os.path.dirname(os.path.abspath(__file__)), OUTPUT_FILE)
-    with open(result_filepath, 'w') as f:
+    with open(result_filepath, 'w', encoding='utf-8') as f:
         f.write(f"{texto}\n")
     print(f"Resultado salvo em: {result_filepath}")
 
@@ -154,5 +154,3 @@ if __name__ == "__main__":
         print("\nAnálise concluída. Verifique o arquivo 'resultado_predicao.txt' para o resultado.")
     else:
         print("\nNão foi possível carregar o modelo TFLite. Abortando a análise.")
-    print("Pressione Enter para sair...")
-    input()

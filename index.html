@@ -70,52 +70,109 @@
         <input type="file" id="imageUpload" name="image" accept="image/png, image/jpeg, image/jpg, image/gif">
         <div id="fileWarning">Por favor, selecione um arquivo de imagem.</div>
         <button id="predictButton">Analisar Imagem</button>
-        <div id="loading">Analisando... Por favor, aguarde.</div>
+        <div id="loading" style="display:none;">Aguardando imagem...</div>
+        <div id="predictionResult"></div> ```
     </div>
 
-    <script>
-        document.getElementById('predictButton').addEventListener('click', async () => {
-            const button = document.getElementById('predictButton');
-            const loadingDiv = document.getElementById('loading');
-            const fileInput = document.getElementById('imageUpload');
-            const fileWarning = document.getElementById('fileWarning');
+<script>
+    document.getElementById('predictButton').addEventListener('click', async () => {
+        const button = document.getElementById('predictButton');
+        const loadingDiv = document.getElementById('loading');
+        const fileInput = document.getElementById('imageUpload');
+        const fileWarning = document.getElementById('fileWarning');
+        const resultDiv = document.getElementById('predictionResult'); // Adicionei este para exibir o resultado
 
-            if (fileInput.files.length === 0) {
-                fileWarning.style.display = 'block';
-                return;
-            } else {
-                fileWarning.style.display = 'none';
-            }
+        // Limpa mensagens anteriores
+        fileWarning.style.display = 'none';
+        resultDiv.textContent = ''; // Limpa o resultado anterior
+        loadingDiv.textContent = 'Aguardando imagem...'; // Mensagem inicial de carregamento
 
-            button.disabled = true;
-            loadingDiv.style.display = 'block';
+        if (fileInput.files.length === 0) {
+            fileWarning.style.display = 'block';
+            return;
+        }
 
-            const formData = new FormData();
-            formData.append('image', fileInput.files[0]);
+        button.disabled = true;
+        loadingDiv.style.display = 'block';
+        loadingDiv.textContent = 'Analisando... Por favor, aguarde.'; // Atualiza mensagem de carregamento
 
-            try {
-                // MUITO IMPORTANTE: Mudar a URL da API para /api/predict
-                const response = await fetch('/api/predict', {
-                    method: 'POST',
-                    body: formData
-                });
+        const formData = new FormData();
+        formData.append('image', fileInput.files[0]);
 
-                const data = await response.json();
+        // --- INÍCIO DO CÓDIGO ATUALIZADO PARA O FETCH COM TIMEOUT E TRATAMENTO DE ERROS REFINADO ---
+        const controller = new AbortController();
+        // Define um timeout de 15 segundos (15000 milissegundos) para a requisição
+        const TIMEOUT_DURATION = 15000; // 15 segundos
+        const timeoutId = setTimeout(() => {
+            controller.abort(); // Cancela a requisição se o tempo expirar
+            console.error("Requisição cancelada por timeout após " + TIMEOUT_DURATION / 1000 + " segundos.");
+            loadingDiv.textContent = 'Erro: A requisição demorou muito para responder. Verifique o servidor.';
+            alert('Ocorreu um erro: A requisição demorou muito para responder. Verifique o servidor e sua conexão.');
+        }, TIMEOUT_DURATION); // 15 segundos de timeout
 
-                if (data.success) {
-                    alert(`Previsão da IA: ${data.prediction}`);
-                } else {
-                    alert(`Erro na predição: ${data.message}`);
+        try {
+            const response = await fetch('http://127.0.0.1:5001/api/predict', {
+                method: 'POST',
+                body: formData,
+                signal: controller.signal // Associa o sinal de abort ao fetch
+            });
+
+            // Limpa o timeout assim que a resposta for recebida (mesmo que seja um erro HTTP)
+            clearTimeout(timeoutId);
+
+            if (!response.ok) { // Verifica se o status HTTP NÃO é 2xx (ex: 400, 500, 405)
+                let errorMessage = `HTTP error! status: ${response.status}`;
+                try {
+                    // Tenta ler o corpo da resposta como JSON para mais detalhes
+                    const errorJson = await response.json();
+                    errorMessage += `, message: ${errorJson.message || JSON.stringify(errorJson)}`;
+                } catch (jsonError) {
+                    // Se não for JSON, lê como texto
+                    const errorText = await response.text();
+                    errorMessage += `, details: ${errorText}`;
                 }
-            } catch (error) {
-                console.error('Erro ao conectar ao servidor:', error);
-                alert('Ocorreu um erro ao tentar se comunicar com o servidor. Verifique se o servidor está rodando ou se a URL da API está correta.');
-            } finally {
-                button.disabled = false;
-                loadingDiv.style.display = 'none';
-                fileInput.value = '';
+                console.error('Erro na resposta do servidor (HTTP status diferente de OK):', errorMessage);
+                loadingDiv.textContent = `Erro do servidor: ${response.status}. Detalhes no console.`;
+                alert(`Ocorreu um erro do servidor (Status: ${response.status}). ${errorMessage}`);
+                return; // Sai da função, pois a resposta não foi OK
             }
-        });
-    </script>
-</body>
-</html>
+
+            // A resposta é OK (status 2xx), então tentamos parsear como JSON
+            const data = await response.json();
+
+            if (data.success) {
+                resultDiv.textContent = `Número Previsto: ${data.prediction}`;
+                loadingDiv.textContent = 'Análise concluída. Verifique o arquivo "resultado_predicao.txt" para o resultado.';
+                alert(`Previsão da IA: ${data.prediction}`); // Mantive o alert para feedback rápido
+            } else {
+                resultDiv.textContent = `Erro na predição: ${data.message || 'Erro desconhecido.'}`;
+                loadingDiv.textContent = 'Ocorreu um erro durante a análise.';
+                alert(`Erro na predição: ${data.message || 'Erro desconhecido.'}`);
+            }
+
+        } catch (error) {
+            // Captura erros de rede (ex: servidor offline), problemas com JSON, ou o AbortError do timeout
+            clearTimeout(timeoutId); // Garante que o timeout seja limpo
+
+            if (error.name === 'AbortError') {
+                // Este erro já foi tratado no setTimeout (se foi por timeout)
+                console.warn("Requisição abortada (provavelmente por timeout ou pelo usuário).");
+                // A mensagem para o usuário já foi definida no setTimeout
+            } else if (error instanceof SyntaxError) {
+                // Erro ao fazer parse do JSON (a resposta do servidor não é JSON válida ou está incompleta)
+                console.error('Erro ao processar JSON da resposta (resposta não é JSON válida/completa):', error);
+                loadingDiv.textContent = 'Erro: Resposta inválida/incompleta do servidor (não é JSON válida).';
+                alert('Ocorreu um erro ao processar a resposta do servidor. Detalhes: Formato de JSON inválido ou incompleto.');
+            } else {
+                // Outros erros de rede ou genéricos
+                console.error('Erro na requisição ou na rede (provavelmente servidor offline ou bloqueado):', error);
+                loadingDiv.textContent = 'Erro ao conectar ao servidor ou processar resposta. Verifique o console.';
+                alert('Ocorreu um erro ao tentar se comunicar com o servidor. Verifique se o servidor está rodando, se a URL da API está correta, ou se há bloqueios de firewall/antivírus. Detalhes: ' + error.message);
+            }
+        } finally {
+            button.disabled = false;
+            // loadingDiv.style.display = 'none'; // Não esconde mais, apenas muda o texto
+            fileInput.value = ''; // Limpa o campo de arquivo
+        }
+    });
+</script>

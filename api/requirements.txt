@@ -1,8 +1,8 @@
 Flask
 numpy
-# Remova: tensorflow
-tflite-runtime # <<<< Use este agora!
+tensorflow # Ou tflite-runtime, dependendo do que você está usando localmente
 werkzeug
 Pillow
 scipy
-gunicorn  # <--- ADICIONE ESTE!
+gunicorn # <--- TEM QUE ESTAR AQUI!
+Flask-Cors

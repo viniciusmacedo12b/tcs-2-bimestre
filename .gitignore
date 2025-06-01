@@ -1,0 +1,18 @@
+# Pastas de ambiente virtual
+venv/
+.venv/
+
+# Pastas de cache e build
+__pycache__/
+*.pyc
+*.ipynb_checkpoints/
+
+# Arquivos de ambiente e logs
+.env
+.flaskenv
+*.log
+
+# Arquivos gerados pela aplicação
+uploads/
+resultado_predicao.txt
+meus_digitos.png # Se este é um arquivo temporário gerado e não parte do seu código base
