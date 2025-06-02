@@ -100,7 +100,7 @@
         formData.append('image', fileInput.files[0]);
 
         const controller = new AbortController();
-        const TIMEOUT_DURATION = 15000;
+        const TIMEOUT_DURATION = 30000; // 30 segundos
         const timeoutId = setTimeout(() => {
             controller.abort();
             console.error("Requisição cancelada por timeout após " + TIMEOUT_DURATION / 1000 + " segundos.");
