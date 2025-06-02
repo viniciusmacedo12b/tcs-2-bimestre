@@ -12,7 +12,11 @@ __pycache__/
 .flaskenv
 *.log
 
-# Arquivos gerados pela aplicação
-uploads/
-resultado_predicao.txt
-meus_digitos.png # Se este é um arquivo temporário gerado e não parte do seu código base
+# Arquivos gerados pela aplicação - (Adicione 'api/' aos caminhos)
+api/uploads/
+api/resultado_predicao.txt
+api/meus_digitos.png # Apenas se este é um arquivo temporário e gerado
+# Arquivos gerados pela aplicação - NOTA: CUIDADO COM ESTES, SE DEVEM ESTAR NO GIT OU NAO
+api/uploads/
+api/resultado_predicao.txt
+api/meus_digitos.png # Apenas se este é um arquivo temporário

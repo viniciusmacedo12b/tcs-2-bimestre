@@ -80,12 +80,12 @@
         const loadingDiv = document.getElementById('loading');
         const fileInput = document.getElementById('imageUpload');
         const fileWarning = document.getElementById('fileWarning');
-        const resultDiv = document.getElementById('predictionResult'); // Adicionei este para exibir o resultado
+        const resultDiv = document.getElementById('predictionResult');
 
         // Limpa mensagens anteriores
         fileWarning.style.display = 'none';
-        resultDiv.textContent = ''; // Limpa o resultado anterior
-        loadingDiv.textContent = 'Aguardando imagem...'; // Mensagem inicial de carregamento
+        resultDiv.textContent = '';
+        loadingDiv.textContent = 'Aguardando imagem...';
 
         if (fileInput.files.length === 0) {
             fileWarning.style.display = 'block';
@@ -94,77 +94,80 @@
 
         button.disabled = true;
         loadingDiv.style.display = 'block';
-        loadingDiv.textContent = 'Analisando... Por favor, aguarde.'; // Atualiza mensagem de carregamento
+        loadingDiv.textContent = 'Analisando... Por favor, aguarde.';
 
         const formData = new FormData();
         formData.append('image', fileInput.files[0]);
 
-        // --- INÍCIO DO CÓDIGO ATUALIZADO PARA O FETCH COM TIMEOUT E TRATAMENTO DE ERROS REFINADO ---
         const controller = new AbortController();
-        // Define um timeout de 15 segundos (15000 milissegundos) para a requisição
-        const TIMEOUT_DURATION = 15000; // 15 segundos
+        const TIMEOUT_DURATION = 15000;
         const timeoutId = setTimeout(() => {
-            controller.abort(); // Cancela a requisição se o tempo expirar
+            controller.abort();
             console.error("Requisição cancelada por timeout após " + TIMEOUT_DURATION / 1000 + " segundos.");
             loadingDiv.textContent = 'Erro: A requisição demorou muito para responder. Verifique o servidor.';
             alert('Ocorreu um erro: A requisição demorou muito para responder. Verifique o servidor e sua conexão.');
-        }, TIMEOUT_DURATION); // 15 segundos de timeout
+        }, TIMEOUT_DURATION);
 
         try {
-            const response = await fetch('http://127.0.0.1:5001/api/predict', {
-                method: 'POST',
+            const response = await fetch('/api/predict', { // <<-- URL relativa
+                method: 'POST', // <<-- Método POST
                 body: formData,
-                signal: controller.signal // Associa o sinal de abort ao fetch
+                signal: controller.signal
             });
 
-            // Limpa o timeout assim que a resposta for recebida (mesmo que seja um erro HTTP)
             clearTimeout(timeoutId);
 
-            if (!response.ok) { // Verifica se o status HTTP NÃO é 2xx (ex: 400, 500, 405)
-                let errorMessage = `HTTP error! status: ${response.status}`;
+            let responseData; // Variável para armazenar o corpo da resposta lido UMA VEZ
+            let rawResponseText = ''; // Para armazenar o texto puro se JSON falhar
+
+            // --- INÍCIO DA LÓGICA DE LEITURA ÚNICA DO CORPO DA RESPOSTA ---
+            try {
+                // Tenta ler como JSON primeiro.
+                responseData = await response.json();
+            } catch (jsonParseError) {
+                console.warn('Não foi possível parsear a resposta como JSON. Tentando ler como texto.', jsonParseError);
                 try {
-                    // Tenta ler o corpo da resposta como JSON para mais detalhes
-                    const errorJson = await response.json();
-                    errorMessage += `, message: ${errorJson.message || JSON.stringify(errorJson)}`;
-                } catch (jsonError) {
-                    // Se não for JSON, lê como texto
-                    const errorText = await response.text();
-                    errorMessage += `, details: ${errorText}`;
+                    // Se falhar, tenta ler como texto.
+                    rawResponseText = await response.text();
+                    responseData = { success: false, message: `Resposta não é JSON válida ou incompleta: ${rawResponseText.substring(0, 200)}...` };
+                } catch (textReadError) {
+                    console.error('Erro ao ler a resposta como texto:', textReadError);
+                    responseData = { success: false, message: 'Não foi possível ler a resposta do servidor.' };
+                }
+            }
+            // --- FIM DA LÓGICA DE LEITURA ÚNICA DO CORPO DA RESPOSTA ---
+
+
+            if (!response.ok) {
+                // O servidor respondeu com um erro HTTP (4xx, 5xx), como 405
+                let errorMessage = `HTTP error! status: ${response.status}`;
+                if (responseData && responseData.message) {
+                    errorMessage += `, message: ${responseData.message}`;
+                } else if (rawResponseText) {
+                    errorMessage += `, details: ${rawResponseText}`;
                 }
                 console.error('Erro na resposta do servidor (HTTP status diferente de OK):', errorMessage);
                 loadingDiv.textContent = `Erro do servidor: ${response.status}. Detalhes no console.`;
                 alert(`Ocorreu um erro do servidor (Status: ${response.status}). ${errorMessage}`);
-                return; // Sai da função, pois a resposta não foi OK
+                return;
             }
 
-            // A resposta é OK (status 2xx), então tentamos parsear como JSON
-            const data = await response.json();
-
-            if (data.success) {
-                resultDiv.textContent = `Número Previsto: ${data.prediction}`;
-                loadingDiv.textContent = 'Análise concluída. Verifique o arquivo "resultado_predicao.txt" para o resultado.';
-                alert(`Previsão da IA: ${data.prediction}`); // Mantive o alert para feedback rápido
+            // A resposta é OK (status 2xx) e o responseData já está populado
+            if (responseData.success) {
+                resultDiv.textContent = `Número Previsto: ${responseData.prediction}`;
+                loadingDiv.textContent = 'Análise concluída.';
+                alert(`Previsão da IA: ${responseData.prediction}`);
             } else {
-                resultDiv.textContent = `Erro na predição: ${data.message || 'Erro desconhecido.'}`;
+                resultDiv.textContent = `Erro na predição: ${responseData.message || 'Erro desconhecido.'}`;
                 loadingDiv.textContent = 'Ocorreu um erro durante a análise.';
-                alert(`Erro na predição: ${data.message || 'Erro desconhecido.'}`);
+                alert(`Erro na predição: ${responseData.message || 'Erro desconhecido.'}`);
             }
 
         } catch (error) {
-            // Captura erros de rede (ex: servidor offline), problemas com JSON, ou o AbortError do timeout
-            clearTimeout(timeoutId); // Garante que o timeout seja limpo
-
+            clearTimeout(timeoutId);
             if (error.name === 'AbortError') {
-                // Este erro já foi tratado no setTimeout (se foi por timeout)
                 console.warn("Requisição abortada (provavelmente por timeout ou pelo usuário).");
-                // A mensagem para o usuário já foi definida no setTimeout
-            } else if (error instanceof SyntaxError) {
-                // Erro ao fazer parse do JSON (a resposta do servidor não é JSON válida ou está incompleta)
-                console.error('Erro ao processar JSON da resposta (resposta não é JSON válida/completa):', error);
-                loadingDiv.textContent = 'Erro: Resposta inválida/incompleta do servidor (não é JSON válida).';
-                alert('Ocorreu um erro ao processar a resposta do servidor. Detalhes: Formato de JSON inválido ou incompleto.');
             } else {
-                // Outros erros de rede ou genéricos
                 console.error('Erro na requisição ou na rede (provavelmente servidor offline ou bloqueado):', error);
                 loadingDiv.textContent = 'Erro ao conectar ao servidor ou processar resposta. Verifique o console.';
                 alert('Ocorreu um erro ao tentar se comunicar com o servidor. Verifique se o servidor está rodando, se a URL da API está correta, ou se há bloqueios de firewall/antivírus. Detalhes: ' + error.message);

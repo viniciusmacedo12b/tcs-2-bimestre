@@ -1,6 +1,6 @@
 Flask
 numpy
-tensorflow # Ou tflite-runtime, dependendo do que você está usando localmente
+tflite-runtime #, dependendo do que você está usando localmente
 werkzeug
 Pillow
 scipy
